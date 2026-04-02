@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aura AI — Upgrade</title>
+<script src="https://js.stripe.com/v3/"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     AURA AI — SUBSCRIPTION PAYWALL
+     Replace YOUR_STRIPE_PUBLISHABLE_KEY with your real key.
+     Replace PRICE_ID_MONTHLY / PRICE_ID_YEARLY with your
+     Stripe Price IDs from the Stripe dashboard.
+  ============================================================ */
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --aura-1: #a78bfa;
+    --aura-2: #fb7185;
+    --aura-3: #34d399;
+    --aura-4: #60a5fa;
+    --bg: #08080f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: rgba(255,255,255,0.08);
+    --border-glow: rgba(167,139,250,0.35);
+    --text: #f0eeff;
+    --muted: rgba(240,238,255,0.45);
+    --muted2: rgba(240,238,255,0.25);
+    --green: #34d399;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ---- Background ---- */
+  .bg-glow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-glow::before {
+    content: '';
+    position: absolute;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 600px;
+    background: radial-gradient(ellipse at center, rgba(167,139,250,0.12) 0%, transparent 70%);
+  }
+  .bg-glow::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    right: -100px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(ellipse at center, rgba(251,113,133,0.08) 0%, transparent 70%);
+  }
+
+  /* ---- Layout ---- */
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  /* ---- Header ---- */
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    background: linear-gradient(135deg, var(--aura-1), var(--aura-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+    margin-bottom: 48px;
+    letter-spacing: -0.5px;
+  }
+
+  /* ---- Hero ---- */
+  .hero {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 100px;
+    background: rgba(167,139,250,0.12);
+    border: 1px solid rgba(167,139,250,0.3);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--aura-1);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    font-family: 'Syne', sans-serif;
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(32px, 6vw, 52px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 .grad {
+    background: linear-gradient(135deg, var(--aura-1) 0%, var(--aura-2) 50%, var(--aura-4) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero p {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 420px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  /* ---- Toggle ---- */
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+
+  .toggle-label {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 400;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .toggle-label.active { color: var(--text); font-weight: 500; }
+
+  .toggle {
+    width: 52px;
+    height: 28px;
+    background: var(--surface2);
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+
+  .toggle.on { background: rgba(167,139,250,0.3); border-color: var(--border-glow); }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: transform 0.3s, background 0.3s;
+  }
+
+  .toggle.on .toggle-thumb {
+    transform: translateX(24px);
+    background: var(--aura-1);
+  }
+
+  .save-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    background: rgba(52,211,153,0.15);
+    border: 1px solid rgba(52,211,153,0.3);
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 600;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  /* ---- Cards ---- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 24px 24px;
+    position: relative;
+    transition: border-color 0.3s, transform 0.2s;
+    cursor: pointer;
+  }
+
+  .card:hover { transform: translateY(-2px); }
+
+  .card.popular {
+    border-color: var(--border-glow);
+    background: linear-gradient(145deg, rgba(167,139,250,0.07), rgba(251,113,133,0.04));
+  }
+
+  .popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--aura-1), var(--aura-2));
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 16px;
+    border-radius: 100px;
+    font-family: 'Syne', sans-serif;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .card-tier {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .card.popular .card-tier { color: var(--aura-1); }
+
+  .card-price {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+
+  .price-amount {
+    font-family: 'Syne', sans-serif;
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    color: var(--text);
+  }
+
+  .price-currency {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-right: 2px;
+    align-self: flex-start;
+    margin-top: 10px;
+  }
+
+  .price-period {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .price-original {
+    font-size: 13px;
+    color: var(--muted2);
+    text-decoration: line-through;
+    margin-bottom: 16px;
+    min-height: 18px;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .features li .check {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(52,211,153,0.15);
+    border: 1px solid rgba(52,211,153,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .features li .check svg {
+    width: 9px;
+    height: 9px;
+    stroke: var(--green);
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .features li.locked { opacity: 0.4; }
+  .features li.locked .check { background: transparent; border-color: var(--border); }
+  .features li.locked .check svg { stroke: var(--muted2); }
+
+  /* ---- CTA Buttons ---- */
+  .cta-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .cta-btn.outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .cta-btn.outline:hover {
+    border-color: rgba(255,255,255,0.2);
+    color: var(--text);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .cta-btn.primary {
+    background: linear-gradient(135deg, var(--aura-1), var(--aura-2));
+    color: white;
+    box-shadow: 0 0 30px rgba(167,139,250,0.3);
+  }
+
+  .cta-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 40px rgba(167,139,250,0.45);
+    filter: brightness(1.08);
+  }
+
+  .cta-btn.primary:active { transform: translateY(0); }
+  .cta-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+  /* ---- Social proof ---- */
+  .social-proof {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .avatars {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+
+  .av {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    margin-left: -8px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface2);
+  }
+
+  .av:first-child { margin-left: 0; }
+
+  .social-proof p {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .social-proof strong { color: var(--text); font-weight: 500; }
+
+  /* ---- Stars ---- */
+  .stars { color: #fbbf24; font-size: 14px; margin-bottom: 4px; }
+
+  /* ---- FAQ ---- */
+  .faq { max-width: 600px; margin: 0 auto 48px; }
+
+  .faq h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0;
+    cursor: pointer;
+  }
+
+  .faq-q {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    gap: 12px;
+  }
+
+  .faq-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+    color: var(--muted);
+    transition: transform 0.3s;
+  }
+
+  .faq-item.open .faq-icon { transform: rotate(45deg); }
+
+  .faq-a {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s;
+  }
+
+  .faq-item.open .faq-a { max-height: 200px; padding-top: 10px; }
+
+  /* ---- Footer ---- */
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted2);
+    line-height: 1.8;
+  }
+
+  .footer a { color: var(--muted); text-decoration: none; }
+  .footer a:hover { color: var(--text); }
+
+  .guarantee {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  .guarantee-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(52,211,153,0.12);
+    border: 1px solid rgba(52,211,153,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ---- Stripe Modal ---- */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .overlay.show { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-glow);
+    border-radius: 24px;
+    padding: 32px;
+    width: 100%;
+    max-width: 420px;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .modal-close {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .modal-close:hover { background: var(--surface2); color: var(--text); }
+
+  .modal-plan-summary {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-plan-name { font-size: 14px; font-weight: 500; }
+  .modal-plan-price {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    background: linear-gradient(135deg, var(--aura-1), var(--aura-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Stripe card element */
+  .field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .input-field::placeholder { color: var(--muted2); }
+  .input-field:focus { border-color: var(--border-glow); }
+
+  #card-element {
+    padding: 13px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: border-color 0.2s;
+  }
+
+  #card-element.StripeElement--focus { border-color: var(--border-glow); }
+
+  #card-errors {
+    font-size: 12px;
+    color: #f87171;
+    margin-top: 8px;
+    min-height: 16px;
+  }
+
+  .checkout-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, var(--aura-1), var(--aura-2));
+    color: white;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .checkout-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .checkout-btn:active { transform: translateY(0); }
+  .checkout-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .checkout-btn .spinner {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .secure-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--muted2);
+  }
+
+  /* ---- Success screen ---- */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 16px 0;
+  }
+
+  .success-screen.show { display: block; }
+
+  .success-orb {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(52,211,153,0.15);
+    border: 1px solid rgba(52,211,153,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 28px;
+  }
+
+  .success-screen h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .success-screen p { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<div class="page">
+
+  <!-- Logo -->
+  <div class="logo">aura ✦ AI</div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">✦ upgrade your aura</div>
+    <h1>unlock your <span class="grad">full potential</span></h1>
+    <p>get unlimited AI conversations, all modes, and vibes that actually hit different.</p>
+  </div>
+
+  <!-- Social proof -->
+  <div class="social-proof">
+    <div class="avatars">
+      <div class="av">🧠</div>
+      <div class="av">✨</div>
+      <div class="av">💜</div>
+      <div class="av">🔥</div>
+      <div class="av">🌙</div>
+    </div>
+    <div class="stars">★★★★★</div>
+    <p><strong>2,400+ people</strong> already unlocked their aura</p>
+  </div>
+
+  <!-- Billing toggle -->
+  <div class="toggle-wrap">
+    <span class="toggle-label active" id="label-monthly" onclick="setBilling('monthly')">monthly</span>
+    <div class="toggle" id="billingToggle" onclick="toggleBilling()">
+      <div class="toggle-thumb"></div>
+    </div>
+    <span class="toggle-label" id="label-yearly" onclick="setBilling('yearly')">
+      yearly <span class="save-badge">save 40%</span>
+    </span>
+  </div>
+
+  <!-- Pricing cards -->
+  <div class="cards">
+
+    <!-- Free -->
+    <div class="card">
+      <div class="card-tier">free</div>
+      <div class="card-price">
+        <span class="price-currency">£</span>
+        <span class="price-amount">0</span>
+        <span class="price-period">/mo</span>
+      </div>
+      <div class="price-original">&nbsp;</div>
+      <div class="card-desc">just getting started? vibe with us for free.</div>
+      <ul class="features">
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>10 messages/day</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Chat mode only</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Basic responses</li>
+        <li class="locked"><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Vibe Check mode</li>
+        <li class="locked"><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Roast & Hype modes</li>
+        <li class="locked"><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Unlimited messages</li>
+      </ul>
+      <button class="cta-btn outline" onclick="continueFreePlan()">stay free</button>
+    </div>
+
+    <!-- Pro -->
+    <div class="card popular">
+      <div class="popular-badge">✦ most popular</div>
+      <div class="card-tier">pro</div>
+      <div class="card-price">
+        <span class="price-currency">£</span>
+        <span class="price-amount" id="pro-price">6.99</span>
+        <span class="price-period">/mo</span>
+      </div>
+      <div class="price-original" id="pro-original">&nbsp;</div>
+      <div class="card-desc">unlimited vibes, all modes, no limits.</div>
+      <ul class="features">
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Unlimited messages</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>All 5 AI modes unlocked</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Priority responses</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Conversation memory</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Early access to new modes</li>
+        <li class="locked"><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Custom AI personality</li>
+      </ul>
+      <button class="cta-btn primary" onclick="openCheckout('pro')">get pro ✦</button>
+    </div>
+
+    <!-- Aura+ -->
+    <div class="card">
+      <div class="card-tier">aura+</div>
+      <div class="card-price">
+        <span class="price-currency">£</span>
+        <span class="price-amount" id="plus-price">12.99</span>
+        <span class="price-period">/mo</span>
+      </div>
+      <div class="price-original" id="plus-original">&nbsp;</div>
+      <div class="card-desc">the full experience. main character energy.</div>
+      <ul class="features">
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Everything in Pro</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Custom AI personality</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Voice messages (coming soon)</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Weekly vibe report</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Priority support</li>
+        <li><div class="check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>Founding member badge</li>
+      </ul>
+      <button class="cta-btn outline" style="border-color:rgba(167,139,250,0.3);color:var(--aura-1);" onclick="openCheckout('plus')">get aura+ ✦</button>
+    </div>
+
+  </div>
+
+  <!-- Guarantee -->
+  <div class="guarantee">
+    <div class="guarantee-icon">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+    </div>
+    7-day money-back guarantee — no questions, no drama
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq">
+    <h3>got questions?</h3>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">can i cancel anytime? <div class="faq-icon">+</div></div>
+      <div class="faq-a">yes bestie, cancel anytime from your account settings. no hidden fees, no guilt trips. we keep it real.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">what happens when i hit the free limit? <div class="faq-icon">+</div></div>
+      <div class="faq-a">you'll get a friendly nudge to upgrade. your convos are saved so you pick up right where you left off once you subscribe.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">is my payment info safe? <div class="faq-icon">+</div></div>
+      <div class="faq-a">100%. payments are handled by Stripe — the same tech used by Apple, Amazon, and Google. we never see or store your card details.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">can i switch plans? <div class="faq-icon">+</div></div>
+      <div class="faq-a">of course! upgrade or downgrade whenever. if you upgrade mid-cycle, we'll prorate the difference automatically.</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>© 2025 Aura AI · <a href="#">Privacy Policy</a> · <a href="#">Terms of Service</a> · <a href="#">Contact</a></p>
+    <p style="margin-top:6px;">Payments securely processed by Stripe · Prices in GBP · VAT may apply</p>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     CHECKOUT MODAL
+============================================================ -->
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+
+    <!-- Default: payment form -->
+    <div id="payment-form-wrap">
+      <div class="modal-header">
+        <div class="modal-title">checkout ✦</div>
+        <button class="modal-close" onclick="closeCheckout()">✕</button>
+      </div>
+
+      <div class="modal-plan-summary">
+        <span class="modal-plan-name" id="modal-plan-name">Aura Pro · Monthly</span>
+        <span class="modal-plan-price" id="modal-plan-price">£6.99/mo</span>
+      </div>
+
+      <div class="field">
+        <div class="field-label">email</div>
+        <input type="email" class="input-field" id="email-input" placeholder="you@example.com" />
+      </div>
+
+      <div class="field">
+        <div class="field-label">card details</div>
+        <div id="card-element"></div>
+        <div id="card-errors"></div>
+      </div>
+
+      <button class="checkout-btn" id="checkout-btn" onclick="handlePayment()">
+        <span id="btn-text">subscribe now ✦</span>
+        <div class="spinner" id="btn-spinner"></div>
+      </button>
+
+      <div class="secure-note">
+        🔒 secured by Stripe · cancel anytime
+      </div>
+    </div>
+
+    <!-- Success state -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-orb">✨</div>
+      <h3>you're glowing!</h3>
+      <p>your aura just got an upgrade. welcome to the pro experience.</p>
+      <button class="checkout-btn" onclick="closeCheckout()">start vibing →</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG — replace these with your real Stripe keys & Price IDs
+// ============================================================
+const STRIPE_PUBLISHABLE_KEY = 'YOUR_STRIPE_PUBLISHABLE_KEY';
+
+const PRICE_IDS = {
+  pro_monthly:  'YOUR_PRICE_ID_PRO_MONTHLY',
+  pro_yearly:   'YOUR_PRICE_ID_PRO_YEARLY',
+  plus_monthly: 'YOUR_PRICE_ID_PLUS_MONTHLY',
+  plus_yearly:  'YOUR_PRICE_ID_PLUS_YEARLY',
+};
+
+// Your backend endpoint that creates a Stripe PaymentIntent or Subscription
+// See: https://stripe.com/docs/billing/subscriptions/build-subscriptions
+const BACKEND_URL = 'YOUR_BACKEND_URL/create-subscription';
+
+// ============================================================
+// Pricing display
+// ============================================================
+const PRICES = {
+  monthly: { pro: '6.99', plus: '12.99', proOrig: '', plusOrig: '' },
+  yearly:  { pro: '4.17', plus: '7.79', proOrig: '£6.99/mo', plusOrig: '£12.99/mo' }
+};
+
+let billing = 'monthly';
+let selectedPlan = 'pro';
+let stripe, cardElement;
+
+function setBilling(mode) {
+  billing = mode;
+  const isYearly = mode === 'yearly';
+
+  document.getElementById('billingToggle').className = 'toggle' + (isYearly ? ' on' : '');
+  document.getElementById('label-monthly').className = 'toggle-label' + (!isYearly ? ' active' : '');
+  document.getElementById('label-yearly').className = 'toggle-label' + (isYearly ? ' active' : '');
+
+  const p = PRICES[mode];
+  document.getElementById('pro-price').textContent = p.pro;
+  document.getElementById('plus-price').textContent = p.plus;
+  document.getElementById('pro-original').textContent = p.proOrig;
+  document.getElementById('plus-original').textContent = p.plusOrig;
+}
+
+function toggleBilling() {
+  setBilling(billing === 'monthly' ? 'yearly' : 'monthly');
+}
+
+// ============================================================
+// Checkout
+// ============================================================
+function openCheckout(plan) {
+  selectedPlan = plan;
+  const p = PRICES[billing];
+  const isYearly = billing === 'yearly';
+
+  const names = {
+    pro: `Aura Pro · ${isYearly ? 'Yearly' : 'Monthly'}`,
+    plus: `Aura+ · ${isYearly ? 'Yearly' : 'Monthly'}`
+  };
+  const prices = {
+    pro: isYearly ? `£${p.pro}/mo (billed £${(parseFloat(p.pro)*12).toFixed(2)}/yr)` : `£${p.pro}/mo`,
+    plus: isYearly ? `£${p.plus}/mo (billed £${(parseFloat(p.plus)*12).toFixed(2)}/yr)` : `£${p.plus}/mo`
+  };
+
+  document.getElementById('modal-plan-name').textContent = names[plan];
+  document.getElementById('modal-plan-price').textContent = prices[plan];
+  document.getElementById('payment-form-wrap').style.display = 'block';
+  document.getElementById('success-screen').classList.remove('show');
+  document.getElementById('overlay').classList.add('show');
+
+  initStripe();
+}
+
+function closeCheckout() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeCheckout();
+}
+
+function continueFreePlan() {
+  // Redirect back to your app
+  alert('Welcome to the free plan! Redirecting to the app...');
+  // window.location.href = '/app';
+}
+
+// ============================================================
+// Stripe
+// ============================================================
+function initStripe() {
+  if (stripe) return;
+
+  try {
+    stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+    const elements = stripe.elements({
+      appearance: {
+        theme: 'night',
+        variables: {
+          colorPrimary: '#a78bfa',
+          colorBackground: '#1a1a24',
+          colorText: '#f0eeff',
+          colorDanger: '#f87171',
+          fontFamily: 'DM Sans, sans-serif',
+          borderRadius: '10px',
+        }
+      }
+    });
+
+    cardElement = elements.create('card', {
+      style: {
+        base: {
+          color: '#f0eeff',
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '14px',
+          '::placeholder': { color: 'rgba(240,238,255,0.3)' }
+        },
+        invalid: { color: '#f87171' }
+      }
+    });
+
+    cardElement.mount('#card-element');
+
+    cardElement.on('change', (e) => {
+      document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
+    });
+  } catch(e) {
+    // Stripe not loaded yet — this is a demo
+    console.log('Stripe not initialised: add your real publishable key');
+  }
+}
+
+async function handlePayment() {
+  const email = document.getElementById('email-input').value.trim();
+  if (!email || !email.includes('@')) {
+    document.getElementById('card-errors').textContent = 'please enter a valid email address.';
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // ---- Step 1: create subscription on your backend ----
+    // Your backend should:
+    // 1. Create/retrieve a Stripe Customer with the email
+    // 2. Create a Subscription with the chosen Price ID
+    // 3. Return the client_secret of the PaymentIntent
+    //
+    // const res = await fetch(BACKEND_URL, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({
+    //     email,
+    //     priceId: PRICE_IDS[`${selectedPlan}_${billing}`]
+    //   })
+    // });
+    // const { clientSecret } = await res.json();
+    //
+    // ---- Step 2: confirm payment with Stripe.js ----
+    // const { error } = await stripe.confirmCardPayment(clientSecret, {
+    //   payment_method: {
+    //     card: cardElement,
+    //     billing_details: { email }
+    //   }
+    // });
+    //
+    // if (error) {
+    //   document.getElementById('card-errors').textContent = error.message;
+    //   setLoading(false);
+    //   return;
+    // }
+
+    // DEMO: simulate success after 1.5s
+    await new Promise(r => setTimeout(r, 1500));
+
+    document.getElementById('payment-form-wrap').style.display = 'none';
+    document.getElementById('success-screen').classList.add('show');
+
+  } catch (err) {
+    document.getElementById('card-errors').textContent = 'something went wrong. please try again.';
+  }
+
+  setLoading(false);
+}
+
+function setLoading(on) {
+  const btn = document.getElementById('checkout-btn');
+  const txt = document.getElementById('btn-text');
+  const spin = document.getElementById('btn-spinner');
+  btn.disabled = on;
+  txt.style.display = on ? 'none' : 'block';
+  spin.style.display = on ? 'block' : 'none';
+}
+
+// ============================================================
+// FAQ
+// ============================================================
+function toggleFaq(el) {
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if (!isOpen) el.classList.add('open');
+}
+</script>
+</body>
+</html>
